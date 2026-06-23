@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FoodImage } from '@/components/brand/food-image';
 import { AppHeader, Card, Divider, PrimaryButton, SecondaryButton } from '@/components/brand/ui';
 import { Brand, Gap, Radius } from '@/constants/brand';
 import { linePrice, RICE_LABEL, useCart } from '@/context/cart';
@@ -20,16 +21,17 @@ export default function CartScreen() {
     lines,
     setQty,
     removeLine,
-    clear,
     pickupTime,
     setPickupTime,
     subtotal,
     studentDiscount,
     mealPlanDiscount,
     total,
+    placeOrder,
   } = useCart();
 
   const [payment, setPayment] = useState<string>('paypay');
+  const [processing, setProcessing] = useState(false);
 
   if (lines.length === 0) {
     return (
@@ -52,8 +54,13 @@ export default function CartScreen() {
   }
 
   const onConfirm = () => {
-    clear();
-    router.replace('/complete');
+    if (processing) return;
+    setProcessing(true);
+    // 決済処理中の体験を再現してから完了画面へ
+    setTimeout(() => {
+      placeOrder();
+      router.replace('/complete');
+    }, 950);
   };
 
   return (
@@ -71,7 +78,7 @@ export default function CartScreen() {
         {lines.map((l) => (
           <View key={l.key} style={styles.item}>
             <View style={styles.thumb}>
-              <Text style={styles.emoji}>{l.item.emoji}</Text>
+              <FoodImage item={l.item} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.itemName}>{l.item.name}</Text>
@@ -158,7 +165,11 @@ export default function CartScreen() {
       </ScrollView>
 
       <SafeAreaView edges={['bottom']} style={styles.bottomBar}>
-        <PrimaryButton label={`注文を確定する　${yen(total)}`} onPress={onConfirm} />
+        <PrimaryButton
+          label={`注文を確定する　${yen(total)}`}
+          onPress={onConfirm}
+          loading={processing}
+        />
       </SafeAreaView>
     </View>
   );
@@ -198,10 +209,8 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: Radius.sm,
     backgroundColor: '#EAD9C4',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  emoji: { fontSize: 30 },
   itemName: { color: Brand.text, fontSize: 14, fontWeight: '800' },
   itemOpt: { color: Brand.muted, fontSize: 12, marginTop: 2 },
   itemPrice: { color: Brand.text, fontSize: 14, fontWeight: '700', marginTop: 4 },

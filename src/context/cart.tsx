@@ -1,5 +1,14 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
+import { CartToast } from '@/components/brand/cart-toast';
 import type { MenuItem } from '@/data/menu';
 
 export type RiceSize = 'small' | 'regular' | 'large';
@@ -30,6 +39,19 @@ export function linePrice(line: CartLine): number {
   return line.item.price + (line.item.riceOption ? RICE_DELTA[line.rice] : 0);
 }
 
+/** 確定済みの注文 (完了画面・注文状況・履歴で参照) */
+export type PlacedOrder = {
+  number: string;
+  lines: CartLine[];
+  subtotal: number;
+  studentDiscount: number;
+  mealPlanDiscount: number;
+  total: number;
+  pickupTime: string;
+  count: number;
+  placedAt: number;
+};
+
 type CartState = {
   lines: CartLine[];
   pickupTime: string;
@@ -38,6 +60,9 @@ type CartState = {
   removeLine: (key: string) => void;
   clear: () => void;
   setPickupTime: (time: string) => void;
+  /** カート内容を確定し、注文番号を採番して lastOrder に確定。カートは空になる。 */
+  placeOrder: () => PlacedOrder;
+  lastOrder: PlacedOrder | null;
   subtotal: number;
   /** 学割10% */
   studentDiscount: number;
@@ -49,24 +74,43 @@ type CartState = {
 
 const MEAL_PLAN_DISCOUNT = 300;
 
+/** 注文番号の採番 (デモ用。履歴の最新 A-0231 / モック A-0237 に続く番号から) */
+let orderSeq = 238;
+const nextOrderNumber = () => `A-${String(orderSeq++).padStart(4, '0')}`;
+
 const CartContext = createContext<CartState | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [pickupTime, setPickupTime] = useState<string>('12:00');
+  const [lastOrder, setLastOrder] = useState<PlacedOrder | null>(null);
+  const [notice, setNotice] = useState<{ text: string; seq: number } | null>(null);
+  const noticeSeq = useRef(0);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const addItem = useCallback<CartState['addItem']>((item, opts) => {
-    const rice = opts?.rice ?? 'regular';
-    const qty = opts?.qty ?? 1;
-    const key = `${item.id}__${rice}`;
-    setLines((prev) => {
-      const existing = prev.find((l) => l.key === key);
-      if (existing) {
-        return prev.map((l) => (l.key === key ? { ...l, qty: l.qty + qty } : l));
-      }
-      return [...prev, { key, item, qty, rice }];
-    });
+  const flashNotice = useCallback((text: string) => {
+    noticeSeq.current += 1;
+    setNotice({ text, seq: noticeSeq.current });
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), 1900);
   }, []);
+
+  const addItem = useCallback<CartState['addItem']>(
+    (item, opts) => {
+      const rice = opts?.rice ?? 'regular';
+      const qty = opts?.qty ?? 1;
+      const key = `${item.id}__${rice}`;
+      setLines((prev) => {
+        const existing = prev.find((l) => l.key === key);
+        if (existing) {
+          return prev.map((l) => (l.key === key ? { ...l, qty: l.qty + qty } : l));
+        }
+        return [...prev, { key, item, qty, rice }];
+      });
+      flashNotice(`${item.name}をカートに追加しました`);
+    },
+    [flashNotice],
+  );
 
   const setQty = useCallback<CartState['setQty']>((key, qty) => {
     setLines((prev) =>
@@ -84,13 +128,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(() => setLines([]), []);
 
-  const value = useMemo<CartState>(() => {
+  const totals = useMemo(() => {
     const subtotal = lines.reduce((sum, l) => sum + linePrice(l) * l.qty, 0);
     const studentDiscount = Math.round(subtotal * 0.1);
-    const mealPlanDiscount = subtotal > 0 ? Math.min(MEAL_PLAN_DISCOUNT, subtotal - studentDiscount) : 0;
+    const mealPlanDiscount =
+      subtotal > 0 ? Math.min(MEAL_PLAN_DISCOUNT, subtotal - studentDiscount) : 0;
     const total = Math.max(0, subtotal - studentDiscount - mealPlanDiscount);
     const count = lines.reduce((sum, l) => sum + l.qty, 0);
-    return {
+    return { subtotal, studentDiscount, mealPlanDiscount, total, count };
+  }, [lines]);
+
+  const placeOrder = useCallback<CartState['placeOrder']>(() => {
+    const order: PlacedOrder = {
+      number: nextOrderNumber(),
+      lines,
+      pickupTime,
+      placedAt: Date.now(),
+      ...totals,
+    };
+    setLastOrder(order);
+    setLines([]);
+    return order;
+  }, [lines, pickupTime, totals]);
+
+  const value = useMemo<CartState>(
+    () => ({
       lines,
       pickupTime,
       addItem,
@@ -98,15 +160,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeLine,
       clear,
       setPickupTime,
-      subtotal,
-      studentDiscount,
-      mealPlanDiscount,
-      total,
-      count,
-    };
-  }, [lines, pickupTime, addItem, setQty, removeLine, clear]);
+      placeOrder,
+      lastOrder,
+      ...totals,
+    }),
+    [lines, pickupTime, addItem, setQty, removeLine, clear, placeOrder, lastOrder, totals],
+  );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      {notice && <CartToast key={notice.seq} text={notice.text} />}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart(): CartState {

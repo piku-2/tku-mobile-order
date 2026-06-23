@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FoodImage } from '@/components/brand/food-image';
 import { AppHeader, Card, PrimaryButton } from '@/components/brand/ui';
 import { Brand, Gap, Radius } from '@/constants/brand';
 import { RICE_DELTA, RICE_LABEL, useCart, type RiceSize } from '@/context/cart';
@@ -56,7 +57,7 @@ export default function MenuDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.photo}>
-          <Text style={styles.photoEmoji}>{item.emoji}</Text>
+          <FoodImage item={item} />
           {item.recommended && (
             <View style={styles.recBadge}>
               <Text style={styles.recBadgeText}>本日のおすすめ</Text>
@@ -162,10 +163,8 @@ const styles = StyleSheet.create({
   photo: {
     height: 220,
     backgroundColor: '#C89458',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  photoEmoji: { fontSize: 96 },
   recBadge: {
     position: 'absolute',
     left: Gap.lg,

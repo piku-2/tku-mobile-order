@@ -2,6 +2,8 @@
  * 学食メニューのモックデータ。実運用では API から取得する想定。
  */
 
+import type { ImageSourcePropType } from 'react-native';
+
 export type Allergen = '卵' | '乳' | '小麦' | '牛肉' | '大豆' | 'ごま' | 'えび' | 'かに';
 
 export type Nutrition = {
@@ -19,6 +21,8 @@ export type MenuItem = {
   name: string;
   price: number;
   emoji: string;
+  /** メニュー写真 (リモートURL or バンドル画像) */
+  image: ImageSourcePropType;
   category: MenuCategory;
   description: string;
   allergens: Allergen[];
@@ -42,6 +46,7 @@ export const MENU: MenuItem[] = [
     name: '油淋鶏定食',
     price: 680,
     emoji: '🍗',
+    image: require('@/assets/images/food-yurinchi-hero.png'),
     category: '定食',
     description: 'カリッと揚げた鶏もも肉に、特製ねぎ醤油だれをたっぷり。ごはん・味噌汁・小鉢付き。',
     allergens: ['卵', '小麦', '大豆', 'ごま'],
@@ -54,6 +59,7 @@ export const MENU: MenuItem[] = [
     name: 'デミグラスハンバーグ定食',
     price: 720,
     emoji: '🍛',
+    image: { uri: 'https://images.unsplash.com/photo-1580554530778-ca36943938b2?w=600&q=80' },
     category: '定食',
     description: 'ジューシーな国産合いびきハンバーグに、煮込みデミグラスソース。ごはん・スープ付き。',
     allergens: ['卵', '乳', '小麦', '牛肉', '大豆', 'ごま'],
@@ -65,6 +71,7 @@ export const MENU: MenuItem[] = [
     name: '醤油ラーメン',
     price: 520,
     emoji: '🍜',
+    image: { uri: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600&q=80' },
     category: '麺類',
     description: '鶏ガラと魚介の合わせだし、すっきり醤油スープ。チャーシュー・メンマ・のり付き。',
     allergens: ['小麦', '大豆', 'ごま'],
@@ -76,6 +83,7 @@ export const MENU: MenuItem[] = [
     name: 'ビーフカレー',
     price: 590,
     emoji: '🍛',
+    image: { uri: 'https://images.unsplash.com/photo-1631292784640-2b24be784d5d?w=600&q=80' },
     category: 'カレー',
     description: 'じっくり煮込んだ牛すじとスパイス香るルー。福神漬け付き。辛さは中辛。',
     allergens: ['乳', '小麦', '牛肉', '大豆'],
@@ -87,6 +95,7 @@ export const MENU: MenuItem[] = [
     name: '焼きおにぎりセット',
     price: 280,
     emoji: '🍙',
+    image: require('@/assets/images/food-onigiri.jpg'),
     category: '軽食',
     description: '香ばしく焼き上げた醤油おにぎり2個と即席味噌汁。小腹がすいたときに。',
     allergens: ['小麦', '大豆', 'ごま'],
@@ -98,6 +107,7 @@ export const MENU: MenuItem[] = [
     name: 'ミニサラダ',
     price: 120,
     emoji: '🥗',
+    image: { uri: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80' },
     category: '軽食',
     description: '彩り野菜のサラダ。和風ドレッシング付き。定食のお供に。',
     allergens: ['大豆'],
@@ -109,6 +119,7 @@ export const MENU: MenuItem[] = [
     name: 'アイスティー',
     price: 150,
     emoji: '🥤',
+    image: { uri: 'https://images.unsplash.com/photo-1499638673689-79a0b5115d87?w=600&q=80' },
     category: 'ドリンク',
     description: 'すっきり茶葉のアイスティー。Lサイズ。',
     allergens: [],

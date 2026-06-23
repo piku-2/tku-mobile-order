@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FoodImage } from '@/components/brand/food-image';
 import { AppHeader, HeaderCartButton } from '@/components/brand/ui';
 import { Brand, Gap, Radius } from '@/constants/brand';
 import { useCart } from '@/context/cart';
@@ -54,7 +55,7 @@ export default function MenuScreen() {
             onPress={() => router.push(`/menu/${m.id}`)}
             style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
             <View style={styles.thumb}>
-              <Text style={styles.emoji}>{m.emoji}</Text>
+              <FoodImage item={m} />
             </View>
             <View style={styles.cardBody}>
               <Text style={styles.name}>{m.name}</Text>
@@ -118,10 +119,8 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: Radius.md,
     backgroundColor: '#EAD9C4',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  emoji: { fontSize: 38 },
   cardBody: { flex: 1, justifyContent: 'space-between' },
   name: { color: Brand.text, fontSize: 15, fontWeight: '800' },
   desc: { color: Brand.muted, fontSize: 12, lineHeight: 17, marginTop: 2 },

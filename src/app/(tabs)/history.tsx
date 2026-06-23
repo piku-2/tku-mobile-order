@@ -2,30 +2,52 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FoodImage } from '@/components/brand/food-image';
 import { AppHeader, HeaderCartButton } from '@/components/brand/ui';
 import { Brand, Gap, Radius } from '@/constants/brand';
 import { useCart } from '@/context/cart';
-import { yen } from '@/data/menu';
+import { getMenuItem, yen } from '@/data/menu';
 
 type PastOrder = {
   id: string;
   date: string;
   items: string;
   total: number;
-  emoji: string;
-  status: '受け取り済み' | 'キャンセル';
+  itemId: string;
+  status: '調理中' | '受け取り済み' | 'キャンセル';
 };
 
+const weekday = ['日', '月', '火', '水', '木', '金', '土'];
+function todayLabel(d: Date): string {
+  return `${d.getMonth() + 1}/${d.getDate()} (${weekday[d.getDay()]}) ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 const PAST_ORDERS: PastOrder[] = [
-  { id: 'A-0231', date: '6/17 (火) 12:10', items: '醤油ラーメン ほか1点', total: 640, emoji: '🍜', status: '受け取り済み' },
-  { id: 'A-0198', date: '6/16 (月) 12:35', items: 'ビーフカレー', total: 531, emoji: '🍛', status: '受け取り済み' },
-  { id: 'A-0150', date: '6/13 (金) 13:05', items: '油淋鶏定食', total: 612, emoji: '🍗', status: '受け取り済み' },
-  { id: 'A-0102', date: '6/11 (水) 11:50', items: '焼きおにぎりセット', total: 252, emoji: '🍙', status: 'キャンセル' },
+  { id: 'A-0231', date: '6/17 (火) 12:10', items: '醤油ラーメン ほか1点', total: 640, itemId: 'shoyu-ramen', status: '受け取り済み' },
+  { id: 'A-0198', date: '6/16 (月) 12:35', items: 'ビーフカレー', total: 531, itemId: 'curry', status: '受け取り済み' },
+  { id: 'A-0150', date: '6/13 (金) 13:05', items: '油淋鶏定食', total: 612, itemId: 'yurinchi', status: '受け取り済み' },
+  { id: 'A-0102', date: '6/11 (水) 11:50', items: '焼きおにぎりセット', total: 252, itemId: 'onigiri', status: 'キャンセル' },
 ];
 
 export default function HistoryScreen() {
   const router = useRouter();
-  const { count } = useCart();
+  const { count, lastOrder } = useCart();
+
+  // 直近に確定した注文を履歴の先頭に「調理中」として差し込む
+  const orders: PastOrder[] = (() => {
+    if (!lastOrder || lastOrder.lines.length === 0) return PAST_ORDERS;
+    const [first, ...rest] = lastOrder.lines;
+    const items = rest.length > 0 ? `${first.item.name} ほか${rest.length}点` : first.item.name;
+    const current: PastOrder = {
+      id: lastOrder.number,
+      date: todayLabel(new Date(lastOrder.placedAt)),
+      items,
+      total: lastOrder.total,
+      itemId: first.item.id,
+      status: '調理中',
+    };
+    return [current, ...PAST_ORDERS];
+  })();
 
   return (
     <View style={styles.screen}>
@@ -51,10 +73,13 @@ export default function HistoryScreen() {
           </View>
         </View>
 
-        {PAST_ORDERS.map((o) => (
+        {orders.map((o) => (
           <View key={o.id} style={styles.card}>
             <View style={styles.thumb}>
-              <Text style={styles.emoji}>{o.emoji}</Text>
+              {(() => {
+                const mi = getMenuItem(o.itemId);
+                return mi ? <FoodImage item={mi} /> : null;
+              })()}
             </View>
             <View style={{ flex: 1 }}>
               <View style={styles.rowBetween}>
@@ -62,7 +87,9 @@ export default function HistoryScreen() {
                 <Text
                   style={[
                     styles.badge,
-                    o.status === 'キャンセル' ? styles.badgeCancel : styles.badgeDone,
+                    o.status === 'キャンセル' && styles.badgeCancel,
+                    o.status === '受け取り済み' && styles.badgeDone,
+                    o.status === '調理中' && styles.badgeActive,
                   ]}>
                   {o.status}
                 </Text>
@@ -116,10 +143,8 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: Radius.md,
     backgroundColor: '#EAD9C4',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  emoji: { fontSize: 30 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   orderId: { color: Brand.text, fontSize: 14, fontWeight: '900' },
   items: { color: Brand.text, fontSize: 13, marginVertical: 4 },
@@ -135,6 +160,7 @@ const styles = StyleSheet.create({
   },
   badgeDone: { color: '#2E7D32', backgroundColor: '#E6F4E6' },
   badgeCancel: { color: Brand.muted, backgroundColor: '#EFEFEF' },
+  badgeActive: { color: Brand.white, backgroundColor: Brand.crimson },
 
   reorderHint: {
     color: Brand.crimson,

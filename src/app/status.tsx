@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader, Card } from '@/components/brand/ui';
 import { Brand, Gap, Radius } from '@/constants/brand';
+import { useCart } from '@/context/cart';
 
 type Step = {
   title: string;
@@ -21,6 +22,8 @@ const STEPS: Step[] = [
 
 export default function StatusScreen() {
   const router = useRouter();
+  const { lastOrder } = useCart();
+  const orderNumber = lastOrder?.number ?? 'A-0237';
 
   const onCancel = () => {
     const back = () => router.replace('/home');
@@ -42,7 +45,7 @@ export default function StatusScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.label}>注文番号</Text>
-        <Text style={styles.orderNumber}>A-0237</Text>
+        <Text style={styles.orderNumber}>{orderNumber}</Text>
 
         <View style={styles.timeline}>
           {STEPS.map((s, i) => {

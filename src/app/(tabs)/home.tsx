@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FoodImage } from '@/components/brand/food-image';
 import { AppHeader, Card, HeaderCartButton, SectionTitle } from '@/components/brand/ui';
 import { Brand, Gap, Radius } from '@/constants/brand';
 import { useCart } from '@/context/cart';
@@ -32,9 +33,7 @@ export default function HomeScreen() {
         <Pressable
           onPress={() => router.push(`/menu/${recommended.id}`)}
           style={({ pressed }) => [styles.hero, pressed && styles.pressed]}>
-          <View style={styles.heroPhoto}>
-            <Text style={styles.heroEmoji}>{recommended.emoji}</Text>
-          </View>
+          <FoodImage item={recommended} style={styles.heroImage} />
           <View style={styles.heroBadge}>
             <Text style={styles.heroBadgeText}>本日のおすすめ</Text>
           </View>
@@ -102,7 +101,7 @@ export default function HomeScreen() {
             onPress={() => router.push(`/menu/${m.id}`)}
             style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
             <View style={styles.menuThumb}>
-              <Text style={styles.menuEmoji}>{m.emoji}</Text>
+              <FoodImage item={m} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.menuName}>{m.name}</Text>
@@ -131,8 +130,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#C79C64',
   },
-  heroPhoto: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  heroEmoji: { fontSize: 72 },
+  heroImage: { width: '100%', height: '100%' },
   heroBadge: {
     position: 'absolute',
     left: Gap.md,
@@ -212,10 +210,8 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: Radius.sm,
     backgroundColor: '#EAD9C4',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  menuEmoji: { fontSize: 28 },
   menuName: { color: Brand.text, fontSize: 14, fontWeight: '800' },
   menuCat: { color: Brand.muted, fontSize: 11, marginTop: 2 },
   menuPrice: { color: Brand.crimson, fontSize: 15, fontWeight: '900' },

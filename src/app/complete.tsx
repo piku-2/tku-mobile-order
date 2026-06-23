@@ -1,9 +1,12 @@
 import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppHeader, Card, PrimaryButton } from '@/components/brand/ui';
 import { Brand, Gap, Radius } from '@/constants/brand';
+import { useCart } from '@/context/cart';
+import { yen } from '@/data/menu';
 
 // QRコード風の見た目だけのモック (実際はサーバー発行のコードを表示する想定)
 const QR = [
@@ -12,8 +15,48 @@ const QR = [
   1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0,
 ];
 
+/** 受け取り予定時刻を算出。「すぐに」は現在 + 8分、時刻指定はその時刻。 */
+function computeReadyAt(pickupTime: string | undefined): Date {
+  const now = new Date();
+  if (!pickupTime || pickupTime === 'すぐに') {
+    return new Date(now.getTime() + 8 * 60_000);
+  }
+  const m = /^(\d{1,2}):(\d{2})$/.exec(pickupTime);
+  if (!m) return new Date(now.getTime() + 8 * 60_000);
+  const target = new Date(now);
+  target.setHours(Number(m[1]), Number(m[2]), 0, 0);
+  // 既に過ぎていれば現在 + 8分にフォールバック
+  if (target.getTime() <= now.getTime()) {
+    return new Date(now.getTime() + 8 * 60_000);
+  }
+  return target;
+}
+
+const hhmm = (d: Date) =>
+  `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
 export default function CompleteScreen() {
   const router = useRouter();
+  const { lastOrder } = useCart();
+
+  const orderNumber = lastOrder?.number ?? 'A-0237';
+  const total = lastOrder?.total ?? 0;
+  const count = lastOrder?.count ?? 0;
+
+  const summary = useMemo(() => {
+    if (!lastOrder || lastOrder.lines.length === 0) return '';
+    const [first, ...rest] = lastOrder.lines;
+    const head = `${first.item.name}${first.qty > 1 ? ` ×${first.qty}` : ''}`;
+    return rest.length > 0 ? `${head} ほか${rest.length}点` : head;
+  }, [lastOrder]);
+
+  const readyAt = useMemo(() => computeReadyAt(lastOrder?.pickupTime), [lastOrder]);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+  const minutesLeft = Math.max(1, Math.ceil((readyAt.getTime() - now) / 60_000));
 
   return (
     <View style={styles.screen}>
@@ -26,9 +69,14 @@ export default function CompleteScreen() {
           <Text style={styles.checkMark}>✓</Text>
         </View>
         <Text style={styles.thanks}>ご注文ありがとうございます！</Text>
+        {summary !== '' && (
+          <Text style={styles.summary}>
+            {summary}（{count}点）・ {yen(total)}
+          </Text>
+        )}
 
         <Text style={styles.label}>注文番号</Text>
-        <Text style={styles.orderNumber}>A-0237</Text>
+        <Text style={styles.orderNumber}>{orderNumber}</Text>
 
         <Text style={styles.label}>受け取りカウンター</Text>
         <Text style={styles.counter}>A カウンター</Text>
@@ -43,8 +91,8 @@ export default function CompleteScreen() {
 
         <Card style={styles.ready}>
           <Text style={styles.readyLabel}>受け取り予定時間</Text>
-          <Text style={styles.readyTime}>12:03 頃</Text>
-          <Text style={styles.readySub}>あと約8分</Text>
+          <Text style={styles.readyTime}>{hhmm(readyAt)} 頃</Text>
+          <Text style={styles.readySub}>あと約 {minutesLeft} 分</Text>
         </Card>
 
         <Text style={styles.note}>※ 調理状況により前後する場合があります</Text>
@@ -75,7 +123,8 @@ const styles = StyleSheet.create({
     marginTop: Gap.sm,
   },
   checkMark: { color: Brand.white, fontSize: 34, fontWeight: '900' },
-  thanks: { color: Brand.text, fontSize: 18, fontWeight: '900', marginTop: Gap.md, marginBottom: Gap.lg },
+  thanks: { color: Brand.text, fontSize: 18, fontWeight: '900', marginTop: Gap.md },
+  summary: { color: Brand.muted, fontSize: 13, marginTop: 6, textAlign: 'center' },
 
   label: { color: Brand.muted, fontSize: 12, marginTop: Gap.md },
   orderNumber: { color: Brand.text, fontSize: 36, fontWeight: '900', letterSpacing: 1, marginTop: 4 },
