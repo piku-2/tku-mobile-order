@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "expo export -p web",
+  "outputDirectory": "dist",
+  "devCommand": "expo",
+  "cleanUrls": true,
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/menu/:id",
+      "destination": "/menu/[id]"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/"
+    }
+  ]
+}
